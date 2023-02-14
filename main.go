@@ -1,52 +1,58 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
+	"io"
+	"net/http"
+	"os"
 	"time"
+
+	"github.com/joho/godotenv"
+)
+
+// c_nbtiskrng1pkrcj168db62l4hg@group.calendar.google.com
+// https://developers.google.com/calendar/api/v3/reference/events/list
+
+const (
+	GoogleCalendarAPIBaseURL = "https://clients6.google.com/calendar/v3/calendars/"
+	// is google api default key
+	GoogleCalendarBaseKey = "AIzaSyBNlYH01_9Hc5S1J9vuFmu2nUqBZJNAXxs"
 )
 
 func main() {
+	godotenv.Load()
+	var CALENDAR_ID string
+	if len(os.Args) > 1 {
+		CALENDAR_ID = os.Args[1]
+	} else {
+		CALENDAR_ID = os.Getenv("CALENDAR_ID")
+	}
+
+	if CALENDAR_ID == "" {
+		panic("CALENDAR_ID is empty")
+	}
+
 	baseLoop := func() {
-		fmt.Println("Foo")
+		nowTime := time.Now().AddDate(0, 0, 2)
+		resp, err := http.Get(NewCalendarV3ApiRequest(nowTime, CALENDAR_ID).BaseURL().String())
+		if err != nil {
+			return
+		}
+		defer resp.Body.Close()
+
+		body, _ := io.ReadAll(resp.Body)
+		data := CalenderV3ApiResponse{}
+		json.Unmarshal(body, &data)
+
+		for _, item := range data.Items {
+			// check if the item start time is before the current time and the status is confirmed
+			if nowTime.Format("2006-01-02") == item.Start.Date && item.Status == "confirmed" {
+				// TODO: send notification
+			}
+		}
 	}
 	baseLoop()
 	for range time.Tick(time.Hour * 24) { // 24 hour clock
 		baseLoop()
 	}
-	// data := CalendarV3ApiRequest{
-	// 	CalendarID: os.Getenv("CALENDAR_ID"),
-	// }
-	// http.Get(data.BaseURL())
 }
-
-type CalendarV3ApiRequest struct {
-	CalendarID   string `json:"calendarId"`
-	SingleEvents bool   `json:"singleEvents"`
-	TimeZone     string `json:"timeZone"`
-	MaxAttendees int    `json:"maxAttendees"`
-	MaxResults   int    `json:"maxResults"`
-	SanitizeHtml bool   `json:"sanitizeHtml"`
-	TimeMin      string `json:"timeMin"`
-	TimeMax      string `json:"timeMax"`
-	Key          string `json:"key"`
-}
-
-func (c *CalendarV3ApiRequest) JSON() CalendarV3ApiRequest {
-	return CalendarV3ApiRequest{
-		SingleEvents: true,
-		TimeZone:     "Asia/Taipei",
-		MaxAttendees: 1,
-		SanitizeHtml: true,
-		// TODO check is google api default key not auto generated
-		Key: "AIzaSyBNlYH01_9Hc5S1J9vuFmu2nUqBZJNAXxs",
-	}
-}
-
-func (c *CalendarV3ApiRequest) BaseURL() string {
-	return fmt.Sprintf("https://clients6.google.com/calendar/v3/calendars/%s/events", c.CalendarID)
-}
-
-type CalenderV3ApiResult struct{}
-
-// https://clients6.google.com/calendar/v3/calendars/
-// c_nbtiskrng1pkrcj168db62l4hg@group.calendar.google.com/events?calendarId=c_nbtiskrng1pkrcj168db62l4hg%40group.calendar.google.com&singleEvents=true&timeZone=Asia%2FTaipei&maxAttendees=1&maxResults=250&sanitizeHtml=true&timeMin=2023-01-29T00%3A00%3A00%2B08%3A00&timeMax=2023-03-05T00%3A00%3A00%2B08%3A00&key=AIzaSyBNlYH01_9Hc5S1J9vuFmu2nUqBZJNAXxs
