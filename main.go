@@ -19,7 +19,7 @@ func main() {
 	CALENDAR_ID := os.Getenv("CALENDAR_ID")
 	if len(os.Args) > 1 {
 		CALENDAR_ID = os.Args[1]
-	} else {
+	} else if CALENDAR_ID == "" {
 		CALENDAR_ID = ConfigData.CALENDAR_ID
 	}
 
