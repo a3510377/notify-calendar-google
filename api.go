@@ -7,6 +7,13 @@ import (
 	"time"
 )
 
+const (
+	GoogleCalendarAPIBaseURL = "https://clients6.google.com/calendar/v3/calendars/"
+	// is google api default key
+	GoogleCalendarBaseKey = "AIzaSyBNlYH01_9Hc5S1J9vuFmu2nUqBZJNAXxs"
+)
+
+// https://developers.google.com/calendar/api/v3/reference/events/list
 type CalendarV3ApiRequest struct {
 	CalendarID   string `json:"calendarId"`
 	SingleEvents bool   `json:"singleEvents"`
