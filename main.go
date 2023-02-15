@@ -13,6 +13,7 @@ import (
 )
 
 // c_nbtiskrng1pkrcj168db62l4hg@group.calendar.google.com
+const UA = "notify-calendar-google(https://github.com/a3510377/notify-calendar-google,1.0.0)"
 
 func main() {
 	godotenv.Load()
@@ -32,9 +33,6 @@ func main() {
 	// TODO add config cron rule
 	c.AddFunc("0 0 12 * * ?", func() { checkAndNotification(CALENDAR_ID) })
 	c.Start() // loop start
-}
-
-func notification(data CalenderV3ApiEventData) {
 }
 
 func checkAndNotification(CALENDAR_ID string) {
@@ -66,4 +64,29 @@ func checkAndNotification(CALENDAR_ID string) {
 			notification(item)
 		}
 	}
+}
+
+func notification(data CalenderV3ApiEventData) {
+	log.Println("Send: ", data.Summary)
+
+	// discord
+	req, _ := http.NewRequest("POST", "https://discord.com/api/channels/%d/messages", nil)
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bot "+"")
+	req.Header.Set("User-Agent", UA)
+
+	resp, err := (&http.Client{}).Do(req)
+	if err != nil {
+		log.Println("Error send discord: ", err)
+	} else {
+		defer resp.Body.Close()
+
+		if resp.StatusCode != 200 {
+			log.Println("Error send discord: ", resp.Status)
+		}
+	}
+
+	// line notify
+	// TODO send line use line notify
 }
