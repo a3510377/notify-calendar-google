@@ -10,16 +10,21 @@ import (
 )
 
 type Config struct {
-	CALENDAR_ID string `yaml:"CALENDAR_ID"`
-	Discord     struct {
-		Enable     bool     `yaml:"enable"`
-		Webhook    []string `yaml:"webhook"`
-		ChannelIDs []int64  `yaml:"channel_ids"`
-	} `yaml:"discord"`
-	Line struct {
-		Enable bool `yaml:"enable"`
-		// TODO add line support
-	} `yaml:"line"`
+	CALENDAR_ID string        `yaml:"CALENDAR_ID"`
+	Discord     DiscordConfig `yaml:"discord"`
+	Line        LineConfig    `yaml:"line"`
+}
+
+type DiscordConfig struct {
+	Enable     bool     `yaml:"enable"`
+	TOKEN      string   `yaml:"TOKEN"`
+	Webhook    []string `yaml:"webhook"`
+	ChannelIDs []int64  `yaml:"channel_ids"`
+}
+
+type LineConfig struct {
+	Enable bool `yaml:"enable"`
+	// TODO add line support
 }
 
 var (
@@ -66,6 +71,8 @@ func init() {
 func NewConfig() *Config {
 	return &Config{
 		CALENDAR_ID: "<請輸入自己的日曆編號>",
+		Discord:     DiscordConfig{Enable: false},
+		Line:        LineConfig{Enable: false},
 	}
 }
 

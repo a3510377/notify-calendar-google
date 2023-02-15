@@ -75,26 +75,42 @@ func notification(data CalenderV3ApiEventData) {
 
 	// discord
 	if ConfigData.Discord.Enable {
-		for _, id := range ConfigData.Discord.ChannelIDs {
-			req, _ := http.NewRequest("POST", fmt.Sprintf(DiscordMessageAPIUrl, id), nil)
-
-			req.Header.Set("Content-Type", "application/json")
-			req.Header.Set("Authorization", "Bot "+"")
-			req.Header.Set("User-Agent", UA)
-
-			resp, err := (&http.Client{}).Do(req)
-			if err != nil {
-				log.Println("Error send discord: ", err)
-			} else {
-				defer resp.Body.Close()
-
-				if resp.StatusCode != 200 {
-					log.Println("Error send discord: ", resp.Status)
-				}
-			}
-		}
+		NotifyDiscord(data)
 	}
 
 	// line notify
 	// TODO send line use line notify
+}
+
+func NotifyDiscord(data CalenderV3ApiEventData) {
+	discordConfig := ConfigData.Discord
+	TOKEN := discordConfig.TOKEN
+
+	for _, id := range discordConfig.ChannelIDs {
+		if TOKEN == "" {
+			log.Println("Discord token is empty")
+			return
+		}
+
+		req, _ := http.NewRequest("POST", fmt.Sprintf(DiscordMessageAPIUrl, id), nil)
+
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bot "+TOKEN)
+		req.Header.Set("User-Agent", UA)
+
+		// multiple concurrent requests
+		go func() {
+			resp, err := (&http.Client{}).Do(req)
+			if err != nil {
+				log.Println("Error send discord: ", err)
+				return
+			}
+
+			defer resp.Body.Close()
+
+			if resp.StatusCode != 200 {
+				log.Println("Error send discord: ", resp.Status)
+			}
+		}()
+	}
 }
