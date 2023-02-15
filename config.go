@@ -18,7 +18,7 @@ type Config struct {
 type DiscordConfig struct {
 	Enable     bool     `yaml:"enable"`
 	TOKEN      string   `yaml:"TOKEN"`
-	Webhook    []string `yaml:"webhook"`
+	Webhooks   []string `yaml:"webhook"`
 	ChannelIDs []int64  `yaml:"channel_ids"`
 }
 
@@ -97,4 +97,15 @@ func watchFile(filePath string) error {
 		time.Sleep(time.Second)
 	}
 	return nil
+}
+
+func GetTmpDate() string {
+	if data, err := os.ReadFile("tmp"); err == nil {
+		return string(data)
+	}
+	return "" // if file not exist
+}
+
+func WriteTmpDate(date time.Time) {
+	os.WriteFile("tmp", []byte(date.Format("2006-01-02")), 0o644)
 }
