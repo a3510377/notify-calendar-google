@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -13,7 +14,10 @@ import (
 )
 
 // c_nbtiskrng1pkrcj168db62l4hg@group.calendar.google.com
-const UA = "notify-calendar-google(https://github.com/a3510377/notify-calendar-google,1.0.0)"
+const (
+	UA                   = "notify-calendar-google(https://github.com/a3510377/notify-calendar-google,1.0.0)"
+	DiscordMessageAPIUrl = "https://discord.com/api/channels/%d/messages"
+)
 
 func main() {
 	godotenv.Load()
@@ -70,20 +74,24 @@ func notification(data CalenderV3ApiEventData) {
 	log.Println("Send: ", data.Summary)
 
 	// discord
-	req, _ := http.NewRequest("POST", "https://discord.com/api/channels/%d/messages", nil)
+	if ConfigData.Discord.Enable {
+		for _, id := range ConfigData.Discord.ChannelIDs {
+			req, _ := http.NewRequest("POST", fmt.Sprintf(DiscordMessageAPIUrl, id), nil)
 
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bot "+"")
-	req.Header.Set("User-Agent", UA)
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Authorization", "Bot "+"")
+			req.Header.Set("User-Agent", UA)
 
-	resp, err := (&http.Client{}).Do(req)
-	if err != nil {
-		log.Println("Error send discord: ", err)
-	} else {
-		defer resp.Body.Close()
+			resp, err := (&http.Client{}).Do(req)
+			if err != nil {
+				log.Println("Error send discord: ", err)
+			} else {
+				defer resp.Body.Close()
 
-		if resp.StatusCode != 200 {
-			log.Println("Error send discord: ", resp.Status)
+				if resp.StatusCode != 200 {
+					log.Println("Error send discord: ", resp.Status)
+				}
+			}
 		}
 	}
 
