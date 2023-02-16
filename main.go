@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,8 +15,10 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
+// "DiscordBot (https://pycord.dev, {0}) Python/{1[0]}.{1[1]} aiohttp/{2}"
+
 const (
-	UA                   = "notify-calendar-google(https://github.com/a3510377/notify-calendar-google,1.0.0)"
+	UA                   = "notifyGoogleCalendar (https://github.com/a3510377, 1.0.0) Golang/1.19.4"
 	DiscordMessageAPIUrl = "https://discord.com/api/channels/%d/messages"
 )
 
@@ -35,13 +38,25 @@ func main() {
 
 	c := cron.New()
 	main := func() {
-		retryCount := 0
-		for retryCount < 3 {
-			if err := checkAndNotification(CALENDAR_ID); err == nil {
+		nowTime := time.Now().AddDate(0, 0, 0)
+		log.Println("check", nowTime.Format("2006-01-02"))
+
+		for retryCount := 0; retryCount < 3; retryCount++ {
+			if nowTime.Format("2006-01-02") == GetTmpDate() {
+				log.Println("Today already send notification, skip check")
 				break
 			}
-			retryCount++
-			time.Sleep(time.Second * 5) // retry after 5 seconds
+			if err := checkAndNotification(CALENDAR_ID, nowTime); err != nil {
+				retryCount++
+
+				if retryCount >= 3 {
+					log.Println("Retry 3 times, skip check")
+				}
+				time.Sleep(time.Second * 5) // retry after 5 seconds
+				continue
+			}
+			WriteTmpDate(nowTime)
+			break
 		}
 	}
 
@@ -55,13 +70,7 @@ func main() {
 	c.Run() // loop start
 }
 
-func checkAndNotification(CALENDAR_ID string) error {
-	nowTime := time.Now().AddDate(0, 0, 2)
-	if nowTime.Format("2006-01-02") == GetTmpDate() {
-		log.Println("Today already send notification, skip check")
-		return nil
-	}
-	WriteTmpDate(nowTime)
+func checkAndNotification(CALENDAR_ID string, nowTime time.Time) error {
 	resp, err := http.Get(NewCalendarV3ApiRequest(nowTime, CALENDAR_ID).BaseURL().String())
 	if err != nil {
 		log.Println("Error getting calendar data: ", err)
@@ -69,7 +78,7 @@ func checkAndNotification(CALENDAR_ID string) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 		log.Println("Error getting calendar data: ", resp.Status)
 		return errors.New("Error getting calendar data: " + resp.Status)
 	}
@@ -79,13 +88,15 @@ func checkAndNotification(CALENDAR_ID string) error {
 		log.Println("Error reading calendar data: ", err)
 		return err
 	}
+
 	data := CalenderV3ApiResponse{}
 	json.Unmarshal(body, &data)
-
 	log.Println("Calendar data: ", data)
+
 	for _, item := range data.Items {
 		// check if the item start time is before the current time and the status is confirmed
 		if nowTime.Format("2006-01-02") == item.Start.Date && item.Status == "confirmed" {
+			// TODO combined into a single send
 			notification(item)
 		}
 	}
@@ -107,54 +118,60 @@ func notification(data CalenderV3ApiEventData) {
 func NotifyDiscord(data CalenderV3ApiEventData) {
 	discordConfig := ConfigData.Discord
 	TOKEN := discordConfig.TOKEN
+	contentByte, _ := json.Marshal(map[string]string{
+		"content": fmt.Sprintf("今天是 %s 的日子", data.Summary),
+	})
+	bodyReader := bytes.NewReader(contentByte)
 
 	if TOKEN == "" {
 		log.Println("Discord token is empty")
 	} else {
 		for _, id := range discordConfig.ChannelIDs {
-
-			req, _ := http.NewRequest("POST", fmt.Sprintf(DiscordMessageAPIUrl, id), nil)
-
-			req.Header.Set("Content-Type", "application/json")
-			req.Header.Set("Authorization", "Bot "+TOKEN)
-			req.Header.Set("User-Agent", UA)
-
 			// multiple concurrent requests
-			go func() {
-				resp, err := (&http.Client{}).Do(req)
+			go func(data bytes.Reader, id int64) {
+				req, _ := http.NewRequest("POST", fmt.Sprintf(DiscordMessageAPIUrl, id), &data)
+
+				req.Header.Set("Content-Type", "application/json")
+				req.Header.Set("Authorization", "Bot "+TOKEN)
+				req.Header.Set("User-Agent", UA)
+
+				resp, err := http.DefaultClient.Do(req)
 				if err != nil {
-					log.Println("Error send discord: ", err)
+					log.Printf("Error send discord: %s\nID: %d\n", err, id)
 					return
 				}
 
 				defer resp.Body.Close()
 
-				if resp.StatusCode != 200 {
-					log.Println("Error send discord: ", resp.Status)
+				if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+					data, _ := io.ReadAll(resp.Body)
+					log.Printf("Error send discord: %s\nID: %d\nResponse: %s\nSend: ", err, id, data)
+					data, _ = io.ReadAll(resp.Request.Body)
+					log.Println(string(data))
 				}
-			}()
+			}(*bodyReader, id)
 		}
 	}
 
 	for _, url := range discordConfig.Webhooks {
-		req, _ := http.NewRequest("POST", url, nil)
-
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("User-Agent", UA)
-
 		// multiple concurrent requests
-		go func() {
-			resp, err := (&http.Client{}).Do(req)
+		go func(data bytes.Reader, url string) {
+			req, _ := http.NewRequest("POST", url, &data)
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("User-Agent", UA)
+
+			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
-				log.Println("Error send discord webhook: ", err)
+				log.Println("Error send discord webhook: ", err, "\nURL:", url)
 				return
 			}
 
 			defer resp.Body.Close()
 
-			if resp.StatusCode != 200 {
-				log.Println("Error send discord webhook: ", resp.Status)
+			if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+				data, _ := io.ReadAll(resp.Body)
+				log.Printf("Error send discord webhook: %s\nURL: %s\nResponse: %s\n", resp.Status, url, data)
 			}
-		}()
+		}(*bodyReader, url)
 	}
 }
