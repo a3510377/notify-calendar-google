@@ -10,20 +10,20 @@ func RelativelyTime(date time.Time, showDate ...bool) (result string) {
 	subDuration := date.Sub(nowTime)
 	ShowDate := len(showDate) > 0 && showDate[0]
 
-	// seconds
-	if subDuration.Seconds() < 60 {
-		return fmt.Sprintf("%d 秒左右", int(subDuration.Seconds()))
-	}
+	// // seconds
+	// if subDuration.Seconds() < 60 {
+	// 	return fmt.Sprintf("%d 秒左右", int(subDuration.Seconds()))
+	// }
 
-	// minutes
-	if subDuration.Hours() < 1 {
-		return fmt.Sprintf("%d 分鐘左右", int(subDuration.Minutes()))
-	}
+	// // minutes
+	// if subDuration.Hours() < 1 {
+	// 	return fmt.Sprintf("%d 分鐘左右", int(subDuration.Minutes()))
+	// }
 
-	// hours
-	if subDuration.Hours() < 24 {
-		return fmt.Sprintf("%d 小時左右", int(subDuration.Hours()))
-	}
+	// // hours
+	// if subDuration.Hours() < 24 {
+	// 	return fmt.Sprintf("%d 小時左右", int(subDuration.Hours()))
+	// }
 
 	// days
 	dayHour := time.Hour * 24
@@ -56,6 +56,9 @@ func RelativelyTime(date time.Time, showDate ...bool) (result string) {
 }
 
 func RelativelyTimeSlice(start time.Time, end time.Time, showDate ...bool) string {
+	if start.Equal(end) {
+		return RelativelyTime(start, showDate...)
+	}
 	return fmt.Sprintf("%s ~ %s", RelativelyTime(start, showDate...), RelativelyTime(end, showDate...))
 }
 

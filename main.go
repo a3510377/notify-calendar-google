@@ -38,7 +38,7 @@ func main() {
 
 	c := cron.New()
 	main := func() {
-		nowTime := time.Now().AddDate(0, 0, 0)
+		nowTime := time.Now().AddDate(0, 0, 1)
 		log.Println("check", nowTime.Format("2006-01-02"))
 
 		for retryCount := 0; retryCount < 3; retryCount++ {
@@ -102,25 +102,24 @@ func checkAndNotification(CALENDAR_ID string, nowTime time.Time) error {
 }
 
 func notification(data CalenderV3ApiEventData) {
-	log.Println("Send: ", data.Summary)
+	start, _ := time.Parse("2006-01-02", data.Start.Date)
+	end, _ := time.Parse("2006-01-02", data.End.Date)
+	content := fmt.Sprintf("%s是 %s 的日子", RelativelyTimeSlice(start, end.Add(-time.Hour*24)), data.Summary)
 
 	// discord
 	if ConfigData.Discord.Enable {
-		NotifyDiscord(data)
+		NotifyDiscord(content)
 	}
 
 	// line notify
 	// TODO send line use line notify
 }
 
-func NotifyDiscord(data CalenderV3ApiEventData) {
+func NotifyDiscord(text string) {
 	discordConfig := ConfigData.Discord
 	TOKEN := discordConfig.TOKEN
-	start, _ := time.Parse("2006-01-02", data.Start.Date)
-	end, _ := time.Parse("2006-01-02", data.End.Date)
-	contentByte, _ := json.Marshal(map[string]string{
-		"content": fmt.Sprintf("%s 是 %s 的日子", RelativelyTimeSlice(start, end), data.Summary),
-	})
+
+	contentByte, _ := json.Marshal(map[string]string{"content": text})
 	bodyReader := bytes.NewReader(contentByte)
 
 	if TOKEN == "" {
