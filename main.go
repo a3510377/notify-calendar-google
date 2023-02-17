@@ -61,8 +61,6 @@ func main() {
 	}
 
 	main() // run once
-	time.Sleep(time.Second * 10)
-	main()
 
 	// TODO add config cron rule
 	c.AddFunc("0 0 12 * * ?", main)
@@ -118,8 +116,10 @@ func notification(data CalenderV3ApiEventData) {
 func NotifyDiscord(data CalenderV3ApiEventData) {
 	discordConfig := ConfigData.Discord
 	TOKEN := discordConfig.TOKEN
+	start, _ := time.Parse("2006-01-02", data.Start.Date)
+	end, _ := time.Parse("2006-01-02", data.End.Date)
 	contentByte, _ := json.Marshal(map[string]string{
-		"content": fmt.Sprintf("今天是 %s 的日子", data.Summary),
+		"content": fmt.Sprintf("%s 是 %s 的日子", RelativelyTimeSlice(start, end), data.Summary),
 	})
 	bodyReader := bytes.NewReader(contentByte)
 
