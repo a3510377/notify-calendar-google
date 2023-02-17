@@ -3,6 +3,14 @@ on:
   workflow_dispatch:
   release:
     types: [created]
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
 
 env:
   IMAGE_REGISTRY: ghcr.io
