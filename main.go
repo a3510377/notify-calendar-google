@@ -15,8 +15,6 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-// "DiscordBot (https://pycord.dev, {0}) Python/{1[0]}.{1[1]} aiohttp/{2}"
-
 const (
 	UA                   = "notifyGoogleCalendar (https://github.com/a3510377, 1.0.0) Golang/1.19.4"
 	DiscordMessageAPIUrl = "https://discord.com/api/channels/%d/messages"
