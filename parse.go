@@ -5,8 +5,7 @@ import (
 	"time"
 )
 
-func RelativelyTime(date time.Time, showDate ...bool) (result string) {
-	nowTime := time.Now()
+func RelativelyTime(nowTime time.Time, date time.Time, showDate ...bool) (result string) {
 	subDuration := date.Sub(nowTime)
 	ShowDate := len(showDate) > 0 && showDate[0]
 
@@ -55,11 +54,12 @@ func RelativelyTime(date time.Time, showDate ...bool) (result string) {
 	return
 }
 
-func RelativelyTimeSlice(start time.Time, end time.Time, showDate ...bool) string {
+func RelativelyTimeSlice(fromTime time.Time, start time.Time, end time.Time, showDate ...bool) string {
+	arg1 := RelativelyTime(fromTime, start, showDate...)
 	if start.Equal(end) {
-		return RelativelyTime(start, showDate...)
+		return arg1
 	}
-	return fmt.Sprintf("%s ~ %s", RelativelyTime(start, showDate...), RelativelyTime(end, showDate...))
+	return fmt.Sprintf("%s ~ %s", arg1, RelativelyTime(fromTime, end, showDate...))
 }
 
 var longDayNames = []string{"日", "一", "二", "三", "四", "五", "六"}

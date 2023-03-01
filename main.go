@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -34,17 +35,20 @@ func main() {
 		panic("CALENDAR_ID is empty")
 	}
 
-	c := cron.New()
-	main := func() {
-		nowTime := time.Now().AddDate(0, 0, 1)
-		log.Println("check", nowTime.Format("2006-01-02"))
+	main := func(checkTimes ...time.Time) {
+		checkTime := time.Now().AddDate(0, 0, 1)
+		if len(checkTimes) > 0 {
+			checkTime = checkTimes[0]
+		}
+
+		log.Println("check", checkTime.Format("2006-01-02"))
 
 		for retryCount := 0; retryCount < 3; retryCount++ {
-			if nowTime.Format("2006-01-02") == GetTmpDate() {
+			if checkTime.Format("2006-01-02") == GetTmpDate() {
 				log.Println("Today already send notification, skip check")
 				break
 			}
-			if err := checkAndNotification(CALENDAR_ID, nowTime); err != nil {
+			if err := checkAndNotification(CALENDAR_ID, checkTime); err != nil {
 				retryCount++
 
 				if retryCount >= 3 {
@@ -53,15 +57,23 @@ func main() {
 				time.Sleep(time.Second * 5) // retry after 5 seconds
 				continue
 			}
-			WriteTmpDate(nowTime)
+			WriteTmpDate(checkTime)
 			break
 		}
 	}
 
+	/* for test */
+	// for i := 1; i < 30*4; i++ {
+	// 	main(time.Now().AddDate(0, 0, i))
+	// 	time.Sleep(time.Second)
+	// }
+	// return
+
 	main() // run once
 
+	c := cron.New()
 	// TODO add config cron rule
-	c.AddFunc("0 0 12 * * ?", main)
+	c.AddFunc("0 0 12 * * ?", func() { main() })
 
 	c.Run() // loop start
 }
@@ -89,20 +101,34 @@ func checkAndNotification(CALENDAR_ID string, nowTime time.Time) error {
 	json.Unmarshal(body, &data)
 	log.Println("Calendar data: ", data)
 
+	notifications := map[string][]CalenderV3ApiEventData{}
 	for _, item := range data.Items {
 		// check if the item start time is before the current time and the status is confirmed
-		if nowTime.Format("2006-01-02") == item.Start.Date && item.Status == "confirmed" {
-			// TODO combined into a single send
-			notification(item)
+		if nowTime.Format("2006-01-02") != item.Start.Date || item.Status != "confirmed" {
+			continue
 		}
+
+		key := item.Start.Date + "-" + item.End.Date
+		notifications[key] = append(notifications[key], item)
+	}
+
+	for _, item := range notifications {
+		notification(nowTime, item...)
 	}
 	return nil
 }
 
-func notification(data CalenderV3ApiEventData) {
-	start, _ := time.Parse("2006-01-02", data.Start.Date)
-	end, _ := time.Parse("2006-01-02", data.End.Date)
-	content := fmt.Sprintf("%s是 %s 的日子", RelativelyTimeSlice(start, end.Add(-time.Hour*24)), data.Summary)
+func notification(fromTime time.Time, data ...CalenderV3ApiEventData) {
+	content := ""
+
+	for _, item := range data {
+		start, _ := time.Parse("2006-01-02", item.Start.Date)
+		end, _ := time.Parse("2006-01-02", item.End.Date)
+		baseTimeString := RelativelyTimeSlice(fromTime, start, end.Add(-time.Hour*24))
+		content += fmt.Sprintf("%s是 %s 的日子\n", baseTimeString, item.Summary)
+	}
+
+	content = strings.TrimSuffix(content, "\n") // remove trailing newline
 
 	// discord
 	if ConfigData.Discord.Enable {
