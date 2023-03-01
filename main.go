@@ -8,7 +8,9 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,6 +21,7 @@ import (
 const (
 	UA                   = "notifyGoogleCalendar (https://github.com/a3510377, 1.0.0) Golang/1.19.4"
 	DiscordMessageAPIUrl = "https://discord.com/api/channels/%d/messages"
+	LineMessageAPIUrl    = "https://notify-api.line.me/api/notify"
 )
 
 func main() {
@@ -113,8 +116,9 @@ func checkAndNotification(CALENDAR_ID string, nowTime time.Time) error {
 	}
 
 	for _, item := range notifications {
-		notification(nowTime, item...)
+		notification(nowTime.Add(-time.Hour*24), item...)
 	}
+
 	return nil
 }
 
@@ -130,13 +134,47 @@ func notification(fromTime time.Time, data ...CalenderV3ApiEventData) {
 
 	content = strings.TrimSuffix(content, "\n") // remove trailing newline
 
+	// line notify
+	if ConfigData.Line.Enable {
+		NotifyLine(content)
+	}
+
 	// discord
 	if ConfigData.Discord.Enable {
 		NotifyDiscord(content)
 	}
+}
 
-	// line notify
-	// TODO send line use line notify
+func NotifyLine(text string) {
+	TOKEN := ConfigData.Line.TOKEN
+
+	if TOKEN == "" {
+		log.Println("Line token is empty")
+		return
+	}
+
+	data := url.Values{"message": {"\n" + text}}.Encode()
+	req, _ := http.NewRequest("POST", LineMessageAPIUrl, strings.NewReader(data))
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Content-Length", strconv.Itoa(len(data)))
+	req.Header.Set("Authorization", "Bearer "+TOKEN)
+	req.Header.Set("User-Agent", UA)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Printf("Error send Line notification: %s\n", err)
+		return
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+		data, _ := io.ReadAll(resp.Body)
+		log.Printf("Error send Line notification: %s\nResponse: %s\nSend: ", err, data)
+		data, _ = io.ReadAll(resp.Request.Body)
+		log.Println(string(data))
+	}
 }
 
 func NotifyDiscord(text string) {
@@ -151,7 +189,7 @@ func NotifyDiscord(text string) {
 	} else {
 		for _, id := range discordConfig.ChannelIDs {
 			// multiple concurrent requests
-			go func(data bytes.Reader, id int64) {
+			go func(data bytes.Reader, id int64) { // id is channel ID
 				req, _ := http.NewRequest("POST", fmt.Sprintf(DiscordMessageAPIUrl, id), &data)
 
 				req.Header.Set("Content-Type", "application/json")

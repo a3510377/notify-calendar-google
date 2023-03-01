@@ -23,8 +23,8 @@ type DiscordConfig struct {
 }
 
 type LineConfig struct {
-	Enable bool `yaml:"enable"`
-	// TODO add line support
+	Enable bool   `yaml:"enable"`
+	TOKEN  string `yaml:"TOKEN"`
 }
 
 var (
