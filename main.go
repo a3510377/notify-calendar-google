@@ -74,9 +74,9 @@ func main() {
 
 	main() // run once
 
-	c := cron.New()
+	c := cron.New(cron.WithLogger(cron.VerbosePrintfLogger(log.Default())))
 	// TODO add config cron rule
-	c.AddFunc("0 0 12 * * ?", func() { main() })
+	c.AddFunc("0 12 * * *", func() { main() })
 
 	c.Run() // loop start
 }
