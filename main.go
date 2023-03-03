@@ -72,8 +72,6 @@ func main() {
 	// }
 	// return
 
-	main() // run once
-
 	c := cron.New()
 	// TODO add config cron rule
 	c.AddFunc("0 0 12 * * ?", func() { main() })
