@@ -32,7 +32,10 @@ var (
 	StopWatch  = false
 )
 
-const ConfigFilePath = "./config.yaml"
+const (
+	ConfigFilePath = "./data/config.yaml"
+	TmpFilePath    = "./data/tmp"
+)
 
 func init() {
 	// os.ReadFile("./config.json")
@@ -100,12 +103,12 @@ func watchFile(filePath string) error {
 }
 
 func GetTmpDate() string {
-	if data, err := os.ReadFile("tmp"); err == nil {
+	if data, err := os.ReadFile(TmpFilePath); err == nil {
 		return string(data)
 	}
 	return "" // if file not exist
 }
 
 func WriteTmpDate(date time.Time) {
-	os.WriteFile("tmp", []byte(date.Format("2006-01-02")), 0o644)
+	os.WriteFile(TmpFilePath, []byte(date.Format("2006-01-02")), 0o644)
 }
