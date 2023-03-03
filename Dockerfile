@@ -13,6 +13,4 @@ RUN set -x && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -
 
 COPY --from=builder /app/start_main /app/start_main
 
-VOLUME "/app/data"
-
 CMD ["/app/start_main"]
