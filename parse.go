@@ -56,7 +56,7 @@ func RelativelyTime(nowTime time.Time, date time.Time, showDate ...bool) (result
 
 func RelativelyTimeSlice(fromTime time.Time, start time.Time, end time.Time, showDate ...bool) string {
 	arg1 := RelativelyTime(fromTime, start, showDate...)
-	if start.Equal(end) {
+	if start.Format("2006-01-02") == end.Format("2006-01-02") { // as same day
 		return arg1
 	}
 	return fmt.Sprintf("%s ~ %s", arg1, RelativelyTime(fromTime, end, showDate...))

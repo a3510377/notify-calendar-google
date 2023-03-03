@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/url"
 	"time"
+
+	"github.com/araddon/dateparse"
 )
 
 const (
@@ -73,13 +75,56 @@ type CalenderV3ApiResponse struct {
 
 // https://developers.google.com/calendar/api/v3/reference/events#resource
 type CalenderV3ApiEventData struct {
-	HtmlLink string `json:"htmlLink"`
-	Summary  string `json:"summary"`
-	Status   string `json:"status"` // confirmed, tentative, cancelled :: 確認, 暫定, 取消
-	Start    struct {
-		Date string `json:"date"`
+	HtmlLink    string `json:"htmlLink"`
+	Summary     string `json:"summary"`
+	Description string `json:"description"`
+	Status      string `json:"status"` // confirmed, tentative, cancelled :: 確認, 暫定, 取消
+	Start       struct {
+		Date     string `json:"date"`
+		DateTime string `json:"dateTime"`
 	} `json:"start"`
 	End struct {
-		Date string `json:"date"`
+		Date     string `json:"date"`
+		DateTime string `json:"dateTime"`
 	} `json:"end"`
+}
+
+func (c *CalenderV3ApiEventData) StartTime() time.Time {
+	dataDateString := c.Start.Date
+	if dataDateString == "" {
+		dataDateString = c.Start.DateTime
+	}
+	dataDate, _ := dateparse.ParseAny(dataDateString)
+	return dataDate
+}
+
+func (c *CalenderV3ApiEventData) EndTime() time.Time {
+	dataDateString := c.End.Date
+	if dataDateString == "" {
+		dataDateString = c.End.DateTime
+	}
+	dataDate, _ := dateparse.ParseAny(dataDateString)
+	return dataDate
+}
+
+func (c *CalenderV3ApiEventData) timeFormat(dataDate time.Time) string {
+	if c.IsAllDay() {
+		return dataDate.Format("2006-01-02")
+	}
+	return dataDate.Format("2006-01-02 15:04:05")
+}
+
+func (c *CalenderV3ApiEventData) StartTimeString() string { return c.timeFormat(c.StartTime()) }
+func (c *CalenderV3ApiEventData) EndTimeString() string   { return c.timeFormat(c.EndTime()) }
+
+func (c *CalenderV3ApiEventData) IsSameStartDay(date time.Time) bool {
+	return c.StartTime().Format("2006-01-02") == date.Format("2006-01-02")
+}
+
+func (c *CalenderV3ApiEventData) IsSameEndDay(date time.Time) bool {
+	return c.EndTime().Format("2006-01-02") == date.Format("2006-01-02")
+}
+
+func (c *CalenderV3ApiEventData) IsAllDay() bool {
+	return c.Start.Date != "" && c.End.Date != ""
 }

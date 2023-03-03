@@ -66,7 +66,7 @@ func main() {
 	}
 
 	/* for test */
-	// for i := 1; i < 30*4; i++ {
+	// for i := 4; i < 30*4; i++ {
 	// 	main(time.Now().AddDate(0, 0, i))
 	// 	time.Sleep(time.Second)
 	// }
@@ -107,11 +107,11 @@ func checkAndNotification(CALENDAR_ID string, nowTime time.Time) error {
 	notifications := map[string][]CalenderV3ApiEventData{}
 	for _, item := range data.Items {
 		// check if the item start time is before the current time and the status is confirmed
-		if nowTime.Format("2006-01-02") != item.Start.Date || item.Status != "confirmed" {
+		if !item.IsSameStartDay(nowTime) || item.Status != "confirmed" {
 			continue
 		}
 
-		key := item.Start.Date + "-" + item.End.Date
+		key := item.StartTimeString() + "-" + item.EndTimeString()
 		notifications[key] = append(notifications[key], item)
 	}
 
@@ -126,10 +126,23 @@ func notification(fromTime time.Time, data ...CalenderV3ApiEventData) {
 	content := ""
 
 	for _, item := range data {
-		start, _ := time.Parse("2006-01-02", item.Start.Date)
-		end, _ := time.Parse("2006-01-02", item.End.Date)
-		baseTimeString := RelativelyTimeSlice(fromTime, start, end.Add(-time.Hour*24))
-		content += fmt.Sprintf("%s是 %s 的日子\n", baseTimeString, item.Summary)
+		description := ""
+		if item.Description != "" {
+			data := strings.Split(item.Description, "\n")
+			description += " >>> \n"
+			for _, item := range data {
+				description += "   >> " + item + "\n"
+			}
+		}
+
+		endTime := item.EndTime()
+		if item.Start.Date != "" {
+			endTime = endTime.Add(-time.Hour * 24)
+		}
+		content += fmt.Sprintf("%s是 %s 的日子 %s\n", RelativelyTimeSlice(
+			fromTime, item.StartTime(),
+			endTime,
+		), item.Summary, description)
 	}
 
 	content = strings.TrimSuffix(content, "\n") // remove trailing newline
