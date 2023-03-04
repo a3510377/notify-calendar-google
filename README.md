@@ -1,4 +1,4 @@
-# notify calender google
+# GCalReminder 日曆提醒系統
 
 ## 設定
 
