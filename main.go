@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/a3510377/notify-calendar-google/cronA"
 	"github.com/joho/godotenv"
 	"github.com/robfig/cron/v3"
 )
@@ -25,6 +26,9 @@ const (
 )
 
 func main() {
+	fmt.Println(cronA.NewCronExpression().Parse("-1 -2 -3 -4"))
+
+	return
 	godotenv.Load()
 
 	CALENDAR_ID := os.Getenv("CALENDAR_ID")
@@ -72,11 +76,18 @@ func main() {
 	// }
 	// return
 
+	const specTime = "0 12 * * *"
+
+	// parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
+
+	if true {
+		return
+	}
 	main() // run once
 
 	c := cron.New(cron.WithLogger(cron.VerbosePrintfLogger(log.Default())))
 	// TODO add config cron rule
-	c.AddFunc("0 12 * * *", func() { main() })
+	c.AddFunc(specTime, func() {})
 
 	c.Run() // loop start
 }
