@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -26,7 +27,30 @@ const (
 )
 
 func main() {
-	fmt.Println(cronA.NewCronExpression().Parse("-1 -2 -3 -4"))
+	dm, err := cronA.NewCronExpression().Parse("0 0 12 * * *")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// data := map[string]uint{}
+	t := reflect.ValueOf(dm).Elem()
+	fmt.Println("----------")
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Type().Field(i)
+		if field.Type.String() != "uint64" {
+			continue
+		}
+		value := t.Field(i).Interface()
+		fmt.Printf("%-7s| %060b |%20d\n", field.Name, value, value)
+	}
+	fmt.Println("----------")
+
+	// fmt.Printf(
+	// 	"dom: %#064b\ndow: %#064b\nhour: %#064b\nminute: %#064b\nmonth: %#064b\nSecond: %#064b",
+	// 	dm.Dom, dm.Dow, dm.Hour,
+	// 	dm.Minute, dm.Month, dm.Second,
+	// )
 
 	return
 	godotenv.Load()

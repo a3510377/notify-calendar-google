@@ -2,6 +2,7 @@ package cronA
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -102,14 +103,85 @@ func parseField(field string, r bounds) (uint64, error) {
 	return bits, nil
 }
 
-func parseRange(expr string, r bounds) (uint64, error) {
+func parseInt(expr string) (uint64, error) {
+	num, err := strconv.Atoi(expr)
+	if err != nil {
+		return 0, err
+	}
+	if num < 0 {
+		return 0, fmt.Errorf("negative number (%d) not allowed: %s", num, expr)
+	}
+
+	return uint64(num), nil
+}
+
+func parseFromIntOrName(expr string, r bounds) (uint64, error) {
+	if u, ok := r.names[expr]; ok {
+		return u, nil
+	}
+
+	num, err := parseInt(expr)
+	if err != nil {
+		return 0, err
+	}
+
+	if num < r.min {
+		return 0, fmt.Errorf("not less than %d (%d)", r.min, num)
+	}
+	if num > r.max {
+		return 0, fmt.Errorf("not greater than %d (%d)", r.min, num)
+	}
+
+	return 0, nil
+}
+
+func parseRange(expr string, r bounds) (u uint64, err error) {
 	if expr == "*" || expr == "?" { // all values || no specific value
 		return r.all(), nil
 	}
 
-	strings.Split(expr, "/")
+	start, end := r.min, r.max
+	// TODO: this
+	// start, err = parseFromIntOrName(lowAndHigh[0], r)
+	switch lowAndHigh := strings.Split(expr, "-"); len(lowAndHigh) {
+	case 1:
+		end = start
+	case 2:
+		end, err = parseFromIntOrName(lowAndHigh[0], r)
+	default:
+		err = fmt.Errorf("too many hyphens: %s", expr)
+	}
+	if err != nil {
+		return 0, err
+	}
 
-	return 0, nil
+	var step uint64
+	switch rangeAndStep := strings.Split(expr, "/"); len(rangeAndStep) {
+	case 1:
+		step = 1
+	case 2:
+		if step, err = parseInt(rangeAndStep[1]); step == 0 {
+			err = fmt.Errorf("step of range should be a positive number: %s", expr)
+		}
+	default:
+		err = fmt.Errorf("too many slashes: %s", expr)
+	}
+	if err != nil {
+		return 0, err
+	}
+
+	// if start < r.min {
+	// 	return 0, fmt.Errorf("beginning of range (%d) below minimum (%d): %s", start, r.min, expr)
+	// }
+	// if end > r.max {
+	// 	return 0, fmt.Errorf("end of range (%d) above maximum (%d): %s", end, r.max, expr)
+	// }
+	// if start > end {
+	// 	return 0, fmt.Errorf("beginning of range (%d) beyond end of range (%d): %s", start, end, expr)
+	// }
+
+	fmt.Println(start, end)
+	return getBits(start, end, step), nil
 }
 
 func NewCronExpression() *CronExpression { return &CronExpression{} }
