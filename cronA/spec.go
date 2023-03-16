@@ -25,7 +25,9 @@ var (
 	}}
 )
 
-func (r bounds) all() uint64 { return getBits(r.min, r.max, 1) }
+func (r bounds) all() uint64 { return getBits(r.Min(), r.Max(), 1) }
+func (r bounds) Min() uint64 { return 0 }
+func (r bounds) Max() uint64 { return r.max - r.min }
 
 func getBits(min, max, step uint64) uint64 {
 	var bits uint64

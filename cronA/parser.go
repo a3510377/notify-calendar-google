@@ -125,11 +125,11 @@ func parseFromIntOrName(expr string, r bounds) (uint64, error) {
 		return 0, err
 	}
 
-	if num < r.min {
-		return 0, fmt.Errorf("not less than %d (%d)", r.min, num)
+	if num < r.Min() {
+		return 0, fmt.Errorf("not less than %d (%d)", r.Min(), num)
 	}
-	if num > r.max {
-		return 0, fmt.Errorf("not greater than %d (%d)", r.min, num)
+	if num > r.Max() {
+		return 0, fmt.Errorf("not greater than %d (%d)", r.Max(), num)
 	}
 
 	return 0, nil
@@ -140,7 +140,7 @@ func parseRange(expr string, r bounds) (u uint64, err error) {
 		return r.all(), nil
 	}
 
-	start, end := r.min, r.max
+	start, end := r.Min(), r.Max()
 	// TODO: this
 	// start, err = parseFromIntOrName(lowAndHigh[0], r)
 	switch lowAndHigh := strings.Split(expr, "-"); len(lowAndHigh) {
@@ -170,17 +170,6 @@ func parseRange(expr string, r bounds) (u uint64, err error) {
 		return 0, err
 	}
 
-	// if start < r.min {
-	// 	return 0, fmt.Errorf("beginning of range (%d) below minimum (%d): %s", start, r.min, expr)
-	// }
-	// if end > r.max {
-	// 	return 0, fmt.Errorf("end of range (%d) above maximum (%d): %s", end, r.max, expr)
-	// }
-	// if start > end {
-	// 	return 0, fmt.Errorf("beginning of range (%d) beyond end of range (%d): %s", start, end, expr)
-	// }
-
-	fmt.Println(start, end)
 	return getBits(start, end, step), nil
 }
 

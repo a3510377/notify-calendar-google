@@ -27,7 +27,7 @@ const (
 )
 
 func main() {
-	dm, err := cronA.NewCronExpression().Parse("0 0 12 * * *")
+	dm, err := cronA.NewCronExpression().Parse("* * * * * *")
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -45,12 +45,6 @@ func main() {
 		fmt.Printf("%-7s| %060b |%20d\n", field.Name, value, value)
 	}
 	fmt.Println("----------")
-
-	// fmt.Printf(
-	// 	"dom: %#064b\ndow: %#064b\nhour: %#064b\nminute: %#064b\nmonth: %#064b\nSecond: %#064b",
-	// 	dm.Dom, dm.Dow, dm.Hour,
-	// 	dm.Minute, dm.Month, dm.Second,
-	// )
 
 	return
 	godotenv.Load()
