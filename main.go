@@ -10,12 +10,10 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/a3510377/notify-calendar-google/cronA"
 	"github.com/joho/godotenv"
 	"github.com/robfig/cron/v3"
 )
@@ -26,27 +24,17 @@ const (
 	LineMessageAPIUrl    = "https://notify-api.line.me/api/notify"
 )
 
-func main() {
-	dm, err := cronA.NewCronExpression().Parse("* * * * * *")
+func getLocation() *time.Location {
+	loc, err := time.LoadLocation(os.Getenv("LOC"))
 	if err != nil {
-		fmt.Println(err)
-		return
+		return loc
 	}
+	return time.Local
+}
 
-	// data := map[string]uint{}
-	t := reflect.ValueOf(dm).Elem()
-	fmt.Println("----------")
-	for i := 0; i < t.NumField(); i++ {
-		field := t.Type().Field(i)
-		if field.Type.String() != "uint64" {
-			continue
-		}
-		value := t.Field(i).Interface()
-		fmt.Printf("%-7s| %060b |%20d\n", field.Name, value, value)
-	}
-	fmt.Println("----------")
+func getNowTime() time.Time { return time.Now().In(getLocation()) }
 
-	return
+func main() {
 	godotenv.Load()
 
 	CALENDAR_ID := os.Getenv("CALENDAR_ID")
@@ -61,7 +49,7 @@ func main() {
 	}
 
 	main := func(checkTimes ...time.Time) {
-		checkTime := time.Now().AddDate(0, 0, 1)
+		checkTime := getNowTime().AddDate(0, 0, 1)
 		if len(checkTimes) > 0 {
 			checkTime = checkTimes[0]
 		}
@@ -96,16 +84,18 @@ func main() {
 
 	const specTime = "0 12 * * *"
 
-	// parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
-
-	if true {
-		return
+	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
+	s, _ := parser.Parse(specTime)
+	if now := getNowTime(); s.Next(now).In(getLocation()).Day() != now.Day() {
+		main()
 	}
-	main() // run once
 
-	c := cron.New(cron.WithLogger(cron.VerbosePrintfLogger(log.Default())))
-	// TODO add config cron rule
-	c.AddFunc(specTime, func() {})
+	c := cron.New(
+		cron.WithLogger(cron.VerbosePrintfLogger(log.Default())),
+		cron.WithLocation(getLocation()),
+	)
+
+	c.AddFunc(specTime, func() { main() })
 
 	c.Run() // loop start
 }
