@@ -26,7 +26,7 @@ const (
 
 func getLocation() *time.Location {
 	loc, err := time.LoadLocation(os.Getenv("LOC"))
-	if err != nil {
+	if err == nil {
 		return loc
 	}
 	return time.Local
@@ -82,7 +82,7 @@ func main() {
 	// }
 	// return
 
-	const specTime = "0 12 * * *"
+	const specTime = "50 14 * * *"
 
 	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 	s, _ := parser.Parse(specTime)
