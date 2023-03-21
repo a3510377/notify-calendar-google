@@ -24,6 +24,16 @@ const (
 	LineMessageAPIUrl    = "https://notify-api.line.me/api/notify"
 )
 
+func getLocation() *time.Location {
+	loc, err := time.LoadLocation(os.Getenv("LOC"))
+	if err == nil {
+		return loc
+	}
+	return time.Local
+}
+
+func getNowTime() time.Time { return time.Now().In(getLocation()) }
+
 func main() {
 	godotenv.Load()
 
@@ -39,7 +49,7 @@ func main() {
 	}
 
 	main := func(checkTimes ...time.Time) {
-		checkTime := time.Now().AddDate(0, 0, 1)
+		checkTime := getNowTime().AddDate(0, 0, 1)
 		if len(checkTimes) > 0 {
 			checkTime = checkTimes[0]
 		}
@@ -72,11 +82,20 @@ func main() {
 	// }
 	// return
 
-	main() // run once
+	const specTime = "50 14 * * *"
 
-	c := cron.New(cron.WithLogger(cron.VerbosePrintfLogger(log.Default())))
-	// TODO add config cron rule
-	c.AddFunc("0 12 * * *", func() { main() })
+	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
+	s, _ := parser.Parse(specTime)
+	if now := getNowTime(); s.Next(now).In(getLocation()).Day() != now.Day() {
+		main()
+	}
+
+	c := cron.New(
+		cron.WithLogger(cron.VerbosePrintfLogger(log.Default())),
+		cron.WithLocation(getLocation()),
+	)
+
+	c.AddFunc(specTime, func() { main() })
 
 	c.Run() // loop start
 }
