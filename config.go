@@ -13,6 +13,7 @@ type Config struct {
 	CALENDAR_ID string        `yaml:"CALENDAR_ID"`
 	Discord     DiscordConfig `yaml:"discord"`
 	Line        LineConfig    `yaml:"line"`
+	Options     OptionConfig  `yaml:"options"`
 }
 
 type DiscordConfig struct {
@@ -25,6 +26,11 @@ type DiscordConfig struct {
 type LineConfig struct {
 	Enable bool   `yaml:"enable"`
 	TOKEN  string `yaml:"TOKEN"`
+}
+
+type OptionConfig struct {
+	AdvanceReminder     bool `yaml:"advance_reminder"`
+	AdvanceReminderDays int  `yaml:"advance_reminder_days"`
 }
 
 var (
@@ -76,6 +82,10 @@ func NewConfig() *Config {
 		CALENDAR_ID: "<請輸入自己的日曆編號>",
 		Discord:     DiscordConfig{Enable: false},
 		Line:        LineConfig{Enable: false},
+		Options: OptionConfig{
+			AdvanceReminder:     true,
+			AdvanceReminderDays: 7,
+		},
 	}
 }
 

@@ -1,17 +1,12 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -56,22 +51,33 @@ func main() {
 
 		log.Println("check", checkTime.Format("2006-01-02"))
 
-		for retryCount := 0; retryCount < 3; retryCount++ {
-			if checkTime.Format("2006-01-02") == GetTmpDate() {
-				log.Println("Today already send notification, skip check")
-				break
-			}
-			if err := checkAndNotification(CALENDAR_ID, checkTime); err != nil {
-				retryCount++
+		if checkTime.Format("2006-01-02") == GetTmpDate() {
+			log.Println("Today already send notification, skip check")
+			return
+		}
 
-				if retryCount >= 3 {
-					log.Println("Retry 3 times, skip check")
-				}
+		retryCount := 0
+		for ; retryCount < 3; retryCount++ {
+			if err := checkAndNotification(CALENDAR_ID, checkTime, nil); err != nil {
 				time.Sleep(time.Second * 5) // retry after 5 seconds
 				continue
 			}
 			WriteTmpDate(checkTime)
 			break
+		}
+		if retryCount >= 3 {
+			log.Println("Retry 3 times, skip check")
+		}
+
+		if ConfigData.Options.AdvanceReminder {
+			if err := checkAndNotification(CALENDAR_ID, checkTime.AddDate(0, 0,
+				ConfigData.Options.AdvanceReminderDays,
+			), func(item CalenderV3ApiEventData) bool {
+				// TODO
+				return false
+			}); err != nil {
+				log.Printf("Advance reminder error %s\n", err)
+			}
 		}
 	}
 
@@ -100,7 +106,7 @@ func main() {
 	c.Run() // loop start
 }
 
-func checkAndNotification(CALENDAR_ID string, nowTime time.Time) error {
+func checkAndNotification(CALENDAR_ID string, nowTime time.Time, callback func(item CalenderV3ApiEventData) bool) error {
 	resp, err := http.Get(NewCalendarV3ApiRequest(nowTime, CALENDAR_ID).BaseURL().String())
 	if err != nil {
 		log.Println("Error getting calendar data: ", err)
@@ -125,8 +131,12 @@ func checkAndNotification(CALENDAR_ID string, nowTime time.Time) error {
 
 	notifications := map[string][]CalenderV3ApiEventData{}
 	for _, item := range data.Items {
-		// check if the item start time is before the current time and the status is confirmed
-		if !item.IsSameStartDay(nowTime) || item.Status != "confirmed" {
+		if callback == nil {
+			// check if the item start time is before the current time and the status is confirmed
+			if !item.IsSameStartDay(nowTime) || item.Status != "confirmed" {
+				continue
+			}
+		} else if !callback(item) {
 			continue
 		}
 
@@ -139,132 +149,4 @@ func checkAndNotification(CALENDAR_ID string, nowTime time.Time) error {
 	}
 
 	return nil
-}
-
-func notification(fromTime time.Time, data ...CalenderV3ApiEventData) {
-	content := ""
-
-	for _, item := range data {
-		description := ""
-		if item.Description != "" {
-			data := strings.Split(item.Description, "\n")
-			description += " >>> \n"
-			for _, item := range data {
-				description += "   >> " + item + "\n"
-			}
-		}
-
-		endTime := item.EndTime()
-		if item.Start.Date != "" {
-			endTime = endTime.Add(-time.Hour * 24)
-		}
-		content += fmt.Sprintf("%s是 %s 的日子 %s\n", RelativelyTimeSlice(
-			fromTime, item.StartTime(),
-			endTime,
-		), item.Summary, description)
-	}
-
-	content = strings.TrimSuffix(content, "\n") // remove trailing newline
-
-	// line notify
-	if ConfigData.Line.Enable {
-		NotifyLine(content)
-	}
-
-	// discord
-	if ConfigData.Discord.Enable {
-		NotifyDiscord(content)
-	}
-}
-
-func NotifyLine(text string) {
-	TOKEN := ConfigData.Line.TOKEN
-
-	if TOKEN == "" {
-		log.Println("Line token is empty")
-		return
-	}
-
-	data := url.Values{"message": {"\n" + text}}.Encode()
-	req, _ := http.NewRequest("POST", LineMessageAPIUrl, strings.NewReader(data))
-
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Content-Length", strconv.Itoa(len(data)))
-	req.Header.Set("Authorization", "Bearer "+TOKEN)
-	req.Header.Set("User-Agent", UA)
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Printf("Error send Line notification: %s\n", err)
-		return
-	}
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
-		data, _ := io.ReadAll(resp.Body)
-		log.Printf("Error send Line notification: %s\nResponse: %s\nSend: ", err, data)
-		data, _ = io.ReadAll(resp.Request.Body)
-		log.Println(string(data))
-	}
-}
-
-func NotifyDiscord(text string) {
-	discordConfig := ConfigData.Discord
-	TOKEN := discordConfig.TOKEN
-
-	contentByte, _ := json.Marshal(map[string]string{"content": text})
-	bodyReader := bytes.NewReader(contentByte)
-
-	if TOKEN == "" {
-		log.Println("Discord token is empty")
-	} else {
-		for _, id := range discordConfig.ChannelIDs {
-			// multiple concurrent requests
-			go func(data bytes.Reader, id int64) { // id is channel ID
-				req, _ := http.NewRequest("POST", fmt.Sprintf(DiscordMessageAPIUrl, id), &data)
-
-				req.Header.Set("Content-Type", "application/json")
-				req.Header.Set("Authorization", "Bot "+TOKEN)
-				req.Header.Set("User-Agent", UA)
-
-				resp, err := http.DefaultClient.Do(req)
-				if err != nil {
-					log.Printf("Error send discord: %s\nID: %d\n", err, id)
-					return
-				}
-
-				defer resp.Body.Close()
-
-				if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
-					data, _ := io.ReadAll(resp.Body)
-					log.Printf("Error send discord: %s\nID: %d\nResponse: %s\nSend: ", err, id, data)
-					data, _ = io.ReadAll(resp.Request.Body)
-					log.Println(string(data))
-				}
-			}(*bodyReader, id)
-		}
-	}
-
-	for _, url := range discordConfig.Webhooks {
-		// multiple concurrent requests
-		go func(data bytes.Reader, url string) {
-			req, _ := http.NewRequest("POST", url, &data)
-			req.Header.Set("Content-Type", "application/json")
-			req.Header.Set("User-Agent", UA)
-
-			resp, err := http.DefaultClient.Do(req)
-			if err != nil {
-				log.Println("Error send discord webhook: ", err, "\nURL:", url)
-				return
-			}
-
-			defer resp.Body.Close()
-
-			if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
-				data, _ := io.ReadAll(resp.Body)
-				log.Printf("Error send discord webhook: %s\nURL: %s\nResponse: %s\n", resp.Status, url, data)
-			}
-		}(*bodyReader, url)
-	}
 }

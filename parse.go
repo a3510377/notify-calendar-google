@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -69,4 +70,40 @@ func TimeWeekdayString(d time.Weekday) string {
 		return longDayNames[d]
 	}
 	return d.String()
+}
+
+func notification(fromTime time.Time, data ...CalenderV3ApiEventData) {
+	content := ""
+
+	for _, item := range data {
+		description := ""
+		if item.Description != "" {
+			data := strings.Split(item.Description, "\n")
+			description += " >>> \n"
+			for _, item := range data {
+				description += "   >> " + item + "\n"
+			}
+		}
+
+		endTime := item.EndTime()
+		if item.Start.Date != "" {
+			endTime = endTime.Add(-time.Hour * 24)
+		}
+		content += fmt.Sprintf("%s是 %s 的日子 %s\n", RelativelyTimeSlice(
+			fromTime, item.StartTime(),
+			endTime,
+		), item.Summary, description)
+	}
+
+	content = strings.TrimSuffix(content, "\n") // remove trailing newline
+
+	// line notify
+	if ConfigData.Line.Enable {
+		NotifyLine(content)
+	}
+
+	// discord
+	if ConfigData.Discord.Enable {
+		NotifyDiscord(content)
+	}
 }
