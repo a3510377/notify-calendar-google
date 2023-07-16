@@ -65,12 +65,6 @@ jobs:
             type=ref,enable=true,priority=600,prefix=,suffix=,event=tag
             type=ref,enable=true,priority=600,prefix=pr-,suffix=,event=pr
 
-      - name: set path env to lower case
-        run: echo "REGISTRY_PATH=${var,,}" >> "$GITHUB_ENV"
-        env:
-          # github.repository as <account>/<repo>
-          var: ghcr.io/${{ github.repository }}
-
       - uses: docker/build-push-action@v4
         with:
           context: .
