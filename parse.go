@@ -96,6 +96,7 @@ func notification(fromTime time.Time, data ...CalenderV3ApiEventData) {
 	}
 
 	content = strings.TrimSuffix(content, "\n") // remove trailing newline
+	fmt.Println("send log: ", content)
 
 	// line notify
 	if ConfigData.Line.Enable {
