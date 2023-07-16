@@ -36,8 +36,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Setup QEMU
-        uses: docker/setup-qemu-action@v2
+      - name: Install cosign
+        if: github.event_name != 'pull_request'
+        uses: sigstore/cosign-installer@v3
+        with:
+          cosign-release: 'v2.1.1'
 
       - name: Setup Docker buildx
         uses: docker/setup-buildx-action@v2
@@ -57,11 +60,8 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            # branch event
             type=ref,enable=true,priority=600,prefix=,suffix=,event=branch
-            # tag event
             type=ref,enable=true,priority=600,prefix=,suffix=,event=tag
-            # pull request event
             type=ref,enable=true,priority=600,prefix=pr-,suffix=,event=pr
 
       - name: set path env to lower case
