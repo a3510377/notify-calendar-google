@@ -10,4 +10,4 @@ FROM alpine
 WORKDIR /app
 COPY --from=builder /app/start .
 
-RUN /app/start
+CMD /app/start
