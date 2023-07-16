@@ -64,6 +64,7 @@ jobs:
           var: ghcr.io/${{ github.repository }}
 
       - uses: docker/build-push-action@v4
+        id: build-and-push
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
