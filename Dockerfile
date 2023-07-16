@@ -4,14 +4,13 @@ WORKDIR /app
 COPY go.* ./
 RUN go mod download
 COPY *.go ./
-RUN GOARCH=amd64 go build -o start_main
+RUN go build -v -a -ldflags '-s -w' -gcflags="all=-trimpath=${PWD}" -asmflags="all=-trimpath=${PWD}"
 
-FROM debian:buster-slim
-
-WORKDIR /
+FROM alpine
+WORKDIR /app
 RUN set -x && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
   ca-certificates && \
   rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app/start_main .
 
-CMD ./start_main
+CMD /app/start_main
