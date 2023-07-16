@@ -8,9 +8,6 @@ RUN go build -v -a -ldflags '-s -w' -gcflags="all=-trimpath=${PWD}" -asmflags="a
 
 FROM alpine
 WORKDIR /app
-RUN set -x && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-  ca-certificates && \
-  rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app/start_main .
 
 CMD /app/start_main
