@@ -4,7 +4,7 @@ WORKDIR /app
 COPY go.* ./
 RUN go mod download
 COPY *.go ./
-RUN go build -v -a -ldflags '-s -w' -gcflags="all=-trimpath=${PWD}" -asmflags="all=-trimpath=${PWD}"
+RUN go build -v -a -ldflags '-s -w' -gcflags="all=-trimpath=${PWD}" -asmflags="all=-trimpath=${PWD}" -o start_main
 
 FROM alpine
 WORKDIR /app
