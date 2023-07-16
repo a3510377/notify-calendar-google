@@ -74,4 +74,4 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           file: ./Dockerfile
-          # platforms: linux/386,linux/amd64,linux/arm/v7,linux/arm64/v8
+          platforms: linux/386,linux/amd64,linux/arm/v7,linux/arm64/v8
