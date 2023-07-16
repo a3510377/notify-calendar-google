@@ -4,7 +4,7 @@ WORKDIR /app
 COPY go.* ./
 RUN go mod download
 COPY *.go ./
-RUN go build -o start_main
+RUN GOARCH=amd64 go build -o start_main
 
 FROM debian:buster-slim
 
