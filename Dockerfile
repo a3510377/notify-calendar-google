@@ -4,7 +4,7 @@ WORKDIR /app
 COPY go.* ./
 RUN go mod download
 COPY *.go ./
-RUN CGO_ENABLED=0 GOOS=linux go build -o start_main
+RUN go build -o start_main
 
 FROM debian:buster-slim
 
