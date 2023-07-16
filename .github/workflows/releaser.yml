@@ -64,7 +64,6 @@ jobs:
           var: ghcr.io/${{ github.repository }}
 
       - uses: docker/build-push-action@v4
-        id: build-and-push
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
@@ -74,13 +73,3 @@ jobs:
           cache-to: type=gha,mode=max
           file: ./Dockerfile
           # platforms: linux/386,linux/amd64,linux/arm/v7,linux/arm64/v8
-
-      - name: Sign the published Docker image
-        if: ${{ github.event_name != 'pull_request' }}
-        env:
-          # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
-          TAGS: ${{ steps.meta.outputs.tags }}
-          DIGEST: ${{ steps.build-and-push.outputs.digest }}
-        # This step uses the identity token to provision an ephemeral certificate
-        # against the sigstore community Fulcio instance.
-        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
