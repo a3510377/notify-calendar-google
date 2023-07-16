@@ -10,4 +10,4 @@ FROM alpine
 WORKDIR /app
 COPY --from=builder /app/start .
 
-ENTRYPOINT ["/bin/bash", "/app/start"]
+RUN /app/start
