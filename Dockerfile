@@ -9,6 +9,5 @@ RUN go build -v -a -ldflags '-s -w' -gcflags="all=-trimpath=${PWD}" -asmflags="a
 FROM alpine
 WORKDIR /app
 COPY --from=builder /app/start .
-VOLUME . /app/config
 
-CMD ./start
+ENTRYPOINT ["/bin/bash", "/app/start"]
