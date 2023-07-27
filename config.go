@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"os"
+	"path"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -53,6 +54,7 @@ func init() {
 		}
 		config := NewConfig()
 		data, _ := yaml.Marshal(config)
+		os.MkdirAll(path.Dir(ConfigFilePath), 0o644)
 		os.WriteFile(ConfigFilePath, data, 0o644)
 	} else {
 		yaml.Unmarshal(yamlFile, &ConfigData)
