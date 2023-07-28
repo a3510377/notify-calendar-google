@@ -1,5 +1,24 @@
 # GCalReminder 日曆提醒系統
 
+GCalReminder 日曆提醒系統，支援 line，Discord
+
+## 運行
+
+### 直接執行
+
+```bash
+go run .
+```
+
+### Docker
+
+```bash
+docker run --name notify- -d \
+  --restart unless-stopped \
+  -v /path/to/data:/app/data \
+  ghcr.io/a3510377/notify-calendar-google:latest
+```
+
 ## 設定
 
 第一次啟動時將會生成 `config.yaml` 檔案:
@@ -19,7 +38,6 @@ line:
 ### `CALENDAR_ID` 日曆 ID
 
 該值可通過網址獲取，比如以下範例網址中: `https://calendar.google.com/calendar/u/0/embed?src=c_nbtiskrng1pkrcj168db62l4hg@group.calendar.google.com&ctz=Asia/Taipei` 可以看到 `.../embed?src=c_nbtiskrng1pkrcj168db62l4hg@group.calendar.google.com&ctz=...` 其中將 `?src=` 後方文字複製到 `&ctz=` 前即可。
-<!-- TODO add regex get ID src=([^&]*) -->
 
 ### discord
 
