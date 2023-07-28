@@ -139,34 +139,34 @@ func (c *CalenderV3ApiEventData) IsAllDay() bool {
 /* ----- notify ----- */
 
 func NotifyLine(text string) {
-	TOKEN := ConfigData.Line.TOKEN
+	for _, token := range ConfigData.Line.Tokens {
+		if token == "" {
+			log.Println("Line token is empty")
+			continue
+		}
 
-	if TOKEN == "" {
-		log.Println("Line token is empty")
-		return
-	}
+		data := url.Values{"message": {"\n" + text}}.Encode()
+		req, _ := http.NewRequest("POST", LineMessageAPIUrl, strings.NewReader(data))
 
-	data := url.Values{"message": {"\n" + text}}.Encode()
-	req, _ := http.NewRequest("POST", LineMessageAPIUrl, strings.NewReader(data))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Set("Content-Length", strconv.Itoa(len(data)))
+		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("User-Agent", UA)
 
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Content-Length", strconv.Itoa(len(data)))
-	req.Header.Set("Authorization", "Bearer "+TOKEN)
-	req.Header.Set("User-Agent", UA)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			log.Printf("Error send Line notification: %s\n", err)
+			return
+		}
 
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Printf("Error send Line notification: %s\n", err)
-		return
-	}
+		defer resp.Body.Close()
 
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
-		data, _ := io.ReadAll(resp.Body)
-		log.Printf("Error send Line notification: %s\nResponse: %s\nSend: ", err, data)
-		data, _ = io.ReadAll(resp.Request.Body)
-		log.Println(string(data))
+		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+			data, _ := io.ReadAll(resp.Body)
+			log.Printf("Error send Line notification: %s\nResponse: %s\nSend: ", err, data)
+			data, _ = io.ReadAll(resp.Request.Body)
+			log.Println(string(data))
+		}
 	}
 }
 

@@ -13,6 +13,7 @@ discord:
   channel_ids: []
 line:
   enable: false
+  tokens: []
 ```
 
 ### `CALENDAR_ID` 日曆 ID
@@ -72,7 +73,13 @@ webhook:
 
 ### `line` notify
 
-尚未實裝
+#### `enable` 啟用 line notify 提醒
+
+若要關閉 line notify 提醒，可將值改成 `false` 若要開啟則改成 `true`
+
+#### `tokens` line notify 權杖
+
+若要使用 line notify 進行發送，需要提供 line notify 權杖，可至 [Line Notify](https://notify-bot.line.me/) 申請。
 
 ## License
 

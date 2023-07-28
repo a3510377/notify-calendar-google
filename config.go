@@ -25,8 +25,8 @@ type DiscordConfig struct {
 }
 
 type LineConfig struct {
-	Enable bool   `yaml:"enable"`
-	TOKEN  string `yaml:"TOKEN"`
+	Enable bool     `yaml:"enable"`
+	Tokens []string `yaml:"tokens"`
 }
 
 type OptionConfig struct {
