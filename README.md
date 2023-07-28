@@ -13,7 +13,7 @@ go run .
 ### Docker
 
 ```bash
-docker run --name notify- -d \
+docker run --name notify-calender-google -d \
   --restart unless-stopped \
   -v /path/to/data:/app/data \
   ghcr.io/a3510377/notify-calendar-google:latest
