@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -20,8 +21,9 @@ const (
 )
 
 func getLocation() *time.Location {
-	loc, err := time.LoadLocation(os.Getenv("LOC"))
-	if err == nil {
+	env := os.Getenv("LOC")
+	loc, err := time.LoadLocation(env)
+	if err == nil && env != "" {
 		return loc
 	}
 	return time.Local
@@ -92,6 +94,7 @@ func main() {
 
 	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 	s, _ := parser.Parse(specTime)
+	fmt.Println(getLocation())
 	if now := getNowTime(); s.Next(now).In(getLocation()).Day() != now.Day() {
 		main()
 	}

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"jaytaylor.com/html2text"
 )
 
 func RelativelyTime(nowTime time.Time, date time.Time, showDate ...bool) (result string) {
@@ -78,7 +80,11 @@ func notification(fromTime time.Time, data ...CalenderV3ApiEventData) {
 	for _, item := range data {
 		description := ""
 		if item.Description != "" {
-			data := strings.Split(item.Description, "\n")
+			text, err := html2text.FromString(item.Description)
+			if err != nil {
+				text = item.Description
+			}
+			data := strings.Split(text, "\n")
 			description += " >>> \n"
 			for _, item := range data {
 				description += "   >> " + item + "\n"
